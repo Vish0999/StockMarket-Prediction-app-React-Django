@@ -54,6 +54,21 @@ const rnnLikeSeries = (arr, alpha = 0.5) => {
   return out;
 };
 
+const arimaLikeSeries = (arr) => {
+  if (arr.length < 5) return sesSeries(arr, 0.4);
+  const out = [];
+  for (let i = 0; i < arr.length; i++) {
+    if (i < 5) {
+      out.push(arr[i]);
+      continue;
+    }
+    const ma = (arr[i] + arr[i-1] + arr[i-2] + arr[i-3] + arr[i-4]) / 5;
+    const trend = (arr[i] - arr[i-4]) / 4;
+    out.push(ma + trend);
+  }
+  return out;
+};
+
 const FRESH_MS = 5 * 60 * 1000;
 const CACHE_KEY = "btc_cache_v1";
 const readCache = () => { try { return JSON.parse(localStorage.getItem(CACHE_KEY)||"{}"); } catch { return {}; } };
@@ -61,7 +76,7 @@ const writeCache = (series) => { try { localStorage.setItem(CACHE_KEY, JSON.stri
 const fmt2 = (v) => (v ?? 0).toFixed(2);
 
 export default function PortfolioPrediction() {
-  const [mode, setMode] = useState("linear"); // linear | logistic
+  const [mode, setMode] = useState("linear"); // linear | timeseries | rnn | arima
   const [series, setSeries] = useState([]);
   const [err, setErr] = useState("");
   const [note, setNote] = useState("");
@@ -92,58 +107,68 @@ export default function PortfolioPrediction() {
 
   useEffect(() => { fetchBTC(); return () => { if (ctrl.current) ctrl.current.abort(); }; }, []);
 
-  const last7 = useMemo(() => {
-    const arr = series.slice(-7);
-    const xs = arr.map((_, i) => i);
-    const ys = arr.map(p => p.price);
-    if (arr.length < 2) return { predLin: 0, predLog: 0, line7: [], log7: [] };
-    const { a, b } = linReg(xs, ys);
-    const L = logisticFit(xs, ys);
-    const line7 = arr.map((_, i) => a + b*i);
-    const log7 = arr.map((_, i) => {
-      const z = L.a + L.b*i; const s = sigmoid(z); return L.minY + s*(L.maxY - L.minY);
-    });
-    const predLin = a + b * arr.length;
-    const z = L.a + L.b * arr.length; const s = sigmoid(z);
-    const predLog = L.minY + s*(L.maxY - L.minY);
-    return { predLin, predLog, line7, log7 };
-  }, [series]);
-
   const current = series.length ? series[series.length - 1] : null;
   const nextX = current ? current.idx + 1 : 0;
 
-  const chartData = useMemo(() => {
-    if (!series.length) return [];
+  const activeData = useMemo(() => {
+    if (!series.length) return { chart: [], pred: 0, label: "", color: "#fff" };
     const last90 = series.slice(-90).map(p => ({ ...p }));
-    if (last7.line7?.length) {
-      last90.slice(-7).forEach((p,i) => { p.linear = last7.line7[i]; p.logistic = last7.log7[i]; });
-    }
-    last90.push({ idx: nextX, date: "Next", price: null, linear: last7.predLin, logistic: last7.predLog });
-    return last90;
-  }, [series, last7, nextX]);
-
-  const tsRnnData = useMemo(() => {
-    if (!series.length) return { ts: [], rnn: [], tsPred: 0, rnnPred: 0 };
-    const last90 = series.slice(-90);
     const prices = last90.map(p => p.price);
-    const tsFit = sesSeries(prices, 0.3);
-    const rnnFit = rnnLikeSeries(prices, 0.5);
-    const tsPred = tsFit.length ? tsFit[tsFit.length-1] : 0;
-    const rnnPred = rnnFit.length ? rnnFit[rnnFit.length-1] : 0;
-    const tsChart = last90.map((p,i) => ({ ...p, ts: tsFit[i] }));
-    const rnnChart = last90.map((p,i) => ({ ...p, rnn: rnnFit[i] }));
-    tsChart.push({ idx: nextX, date: "Next", ts: tsPred, price: null });
-    rnnChart.push({ idx: nextX, date: "Next", rnn: rnnPred, price: null });
-    return { ts: tsChart, rnn: rnnChart, tsPred, rnnPred };
-  }, [series, nextX]);
+    let fit = [];
+    let pred = 0;
+    let label = "";
+    let color = "#fff";
+
+    if (mode === "linear") {
+      const xs = Array.from({ length: 7 }, (_, i) => i);
+      const ys = series.slice(-7).map(p => p.price);
+      if (ys.length >= 2) {
+        const { a, b } = linReg(xs, ys);
+        const line7 = ys.map((_, i) => a + b * i);
+        last90.slice(-7).forEach((p, i) => { p.fit = line7[i]; });
+        pred = a + b * 7;
+      }
+      label = "Linear Fit (7D)";
+      color = "#60a5fa";
+    } else if (mode === "timeseries") {
+      fit = sesSeries(prices, 0.3);
+      pred = fit.length ? fit[fit.length - 1] : 0;
+      last90.forEach((p, i) => { p.fit = fit[i]; });
+      label = "Time Series (SES)";
+      color = "#34d399";
+    } else if (mode === "rnn") {
+      fit = rnnLikeSeries(prices, 0.5);
+      pred = fit.length ? fit[fit.length - 1] : 0;
+      last90.forEach((p, i) => { p.fit = fit[i]; });
+      label = "RNN-like Model";
+      color = "#f97316";
+    } else if (mode === "arima") {
+      fit = arimaLikeSeries(prices);
+      pred = fit.length ? fit[fit.length - 1] : 0;
+      last90.forEach((p, i) => { p.fit = fit[i]; });
+      label = "ARIMA-like Model";
+      color = "#a855f7";
+    }
+
+    last90.push({ idx: nextX, date: "Next", price: null, fit: pred });
+    return { chart: last90, pred, label, color };
+  }, [series, mode, nextX]);
 
   return (
     <main className="pp container">
       <header className="pp-header">
-        <h1>Portfolio Prediction (BTC)</h1>
+        <h1>BTC Prediction</h1>
         <div className="pp-controls">
-          <button className={`pp-btn ${mode==="linear"?"active":""}`} onClick={()=>setMode("linear")}>Linear (7D)</button>
-          <button className={`pp-btn ${mode==="logistic"?"active":""}`} onClick={()=>setMode("logistic")}>Logistic (7D)</button>
+          <select 
+            className="pp-select" 
+            value={mode} 
+            onChange={(e) => setMode(e.target.value)}
+          >
+            <option value="linear">Linear Regression</option>
+            <option value="timeseries">Time Series</option>
+            <option value="rnn">RNN Model</option>
+            <option value="arima">ARIMA Model</option>
+          </select>
           <button className="pp-btn" onClick={fetchBTC} disabled={loading}>Refresh</button>
         </div>
       </header>
@@ -152,68 +177,27 @@ export default function PortfolioPrediction() {
       {err && <div className="pp-error">{err}</div>}
 
       <section className="pp-card">
-        <div className="pp-card-title">BTC Price with {mode==="linear"?"Linear":"Logistic"} Fit (last 90d, 7d window)</div>
-        <div style={{ height: 360 }}>
+        <div className="pp-card-title">BTC Price with {activeData.label}</div>
+        <div style={{ height: 420 }}>
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 10, right: 20, bottom: 20, left: 0 }}>
+            <LineChart data={activeData.chart} margin={{ top: 10, right: 20, bottom: 20, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
               <XAxis dataKey="date" hide />
               <YAxis />
-              <Tooltip formatter={(v,k)=>[typeof v==="number"?v.toFixed(2):v,k]} />
+              <Tooltip formatter={(v, k) => [typeof v === "number" ? v.toFixed(2) : v, k]} />
               <Line type="monotone" dataKey="price" name="Price" stroke="#e2e8f0" strokeWidth={2} dot={false} />
-              {mode==="linear" ? (
-                <Line type="monotone" dataKey="linear" name="Linear fit" stroke="#60a5fa" strokeWidth={2} dot={false} />
-              ) : (
-                <Line type="monotone" dataKey="logistic" name="Logistic fit" stroke="#f59e0b" strokeWidth={2} dot={false} />
-              )}
+              <Line type="monotone" dataKey="fit" name={activeData.label} stroke={activeData.color} strokeWidth={2} dot={false} />
               {current && (
-                <ReferenceDot x={chartData[chartData.length-1]?.idx} y={mode==="linear"? last7.predLin : last7.predLog} r={5} fill={mode==="linear"?"#60a5fa":"#f59e0b"} stroke="none" />
+                <ReferenceDot x={nextX} y={activeData.pred} r={5} fill={activeData.color} stroke="none" />
               )}
             </LineChart>
           </ResponsiveContainer>
         </div>
         <div className="pp-stats">
           <div className="pp-chip">Current: {current ? fmt2(current.price) : "—"}</div>
-          <div className="pp-chip">Linear +1D: {fmt2(last7.predLin)}</div>
-          <div className="pp-chip">Logistic +1D: {fmt2(last7.predLog)}</div>
-        </div>
-      </section>
-
-      <section className="pp-card">
-        <div className="pp-card-title">BTC Price with Time Series (SES) Fit</div>
-        <div style={{ height: 320 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={tsRnnData.ts} margin={{ top: 10, right: 20, bottom: 20, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-              <XAxis dataKey="date" hide />
-              <YAxis />
-              <Tooltip formatter={(v,k)=>[typeof v==="number"?v.toFixed(2):v,k]} />
-              <Line type="monotone" dataKey="price" name="Price" stroke="#e2e8f0" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="ts" name="SES fit" stroke="#34d399" strokeWidth={2} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="pp-stats">
-          <div className="pp-chip">TS +1D: {fmt2(tsRnnData.tsPred)}</div>
-        </div>
-      </section>
-
-      <section className="pp-card">
-        <div className="pp-card-title">BTC Price with RNN-like Fit</div>
-        <div style={{ height: 320 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={tsRnnData.rnn} margin={{ top: 10, right: 20, bottom: 20, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-              <XAxis dataKey="date" hide />
-              <YAxis />
-              <Tooltip formatter={(v,k)=>[typeof v==="number"?v.toFixed(2):v,k]} />
-              <Line type="monotone" dataKey="price" name="Price" stroke="#e2e8f0" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="rnn" name="RNN-like fit" stroke="#f97316" strokeWidth={2} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="pp-stats">
-          <div className="pp-chip">RNN +1D: {fmt2(tsRnnData.rnnPred)}</div>
+          <div className="pp-chip" style={{ borderColor: activeData.color, color: activeData.color }}>
+            {mode.toUpperCase()} +1D: {fmt2(activeData.pred)}
+          </div>
         </div>
       </section>
     </main>

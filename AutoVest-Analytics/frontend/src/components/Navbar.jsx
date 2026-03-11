@@ -29,7 +29,6 @@ export default function Navbar() {
         <div className={`nav-menu ${mobileOpen ? "open" : ""}`}>
           {isAuthenticated ? (
             <>
-              <NavLink to="/portfolio" icon={<LayoutDashboard className="icon" />} label="My Portfolio" active={isActive("/portfolio")} />
               <div className="dropdown">
                 <button onClick={() => setOpen(!open)} className={`nav-link ${isActive("/portfolio") ? "active" : ""}`}>
                   <PieChart className="icon" /><span>Sectors</span><ChevronDown className="icon" />
@@ -45,10 +44,10 @@ export default function Navbar() {
                   </div>
                 )}
               </div>
-              <NavLink to="/analysis" icon={<BarChart3 className="icon" />} label="Analysis" active={isActive("/analysis")} />
+              <NavLink to="/analysis" icon={<LayoutDashboard className="icon" />} label="My Portfolio" active={isActive("/analysis")} />
               <NavLink to="/entry" icon={<PlusSquare className="icon" />} label="Manual Entry" active={isActive("/entry")} />
               <NavLink to="/stocks" icon={<Search className="icon" />} label="Search Stock" active={isActive("/stocks")} />
-              <NavLink to="/prediction" icon={<BarChart3 className="icon" />} label="Prediction" active={isActive("/prediction")} />
+              <NavLink to="/prediction" icon={<BarChart3 className="icon" />} label="BTC Prediction" active={isActive("/prediction")} />
               <NavLink to="/gold-silver" icon={<BarChart3 className="icon" />} label="Gold/Silver" active={isActive("/gold-silver")} />
               <button onClick={logout} className="nav-cta"><LogOut className="icon" /><span>Sign Out</span></button>
             </>

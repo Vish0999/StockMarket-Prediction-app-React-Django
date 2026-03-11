@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import api from "../services/api";
+import "./PortfolioPage.css";
 
 const STORAGE_KEY = "portfolioHoldings";
 const MANUAL_STORAGE_KEY = "manualStocks";
 
-const formatCurrency = (value) => `\u20B9${Number(value || 0).toFixed(2)}`;
+const formatCurrency = (value) => `\u20B9${Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const normalizeSector = (value) => {
   const raw = (value || "").toString().trim().toUpperCase();
@@ -100,47 +101,63 @@ export default function Portfolio() {
       ...stock,
       price: Number(priceBySymbol[stock.symbol] ?? stock.price ?? 0),
     }));
-    if (!searchParams.get("sector")) return visible;
-    return visible.filter((stock) => stock.sector === selectedSector);
-  }, [holdings, priceBySymbol, searchParams, selectedSector]);
+    
+    const sectorQuery = searchParams.get("sector");
+    if (!sectorQuery) return visible;
+    
+    // Normalize query for comparison
+    const normalizedQuery = normalizeSector(sectorQuery);
+    return visible.filter((stock) => stock.sector === normalizedQuery);
+  }, [holdings, priceBySymbol, searchParams]);
 
   return (
-    <main className="max-w-5xl mx-auto px-6 py-10">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Portfolio</h1>
-        <p className="text-slate-400 mt-1">
+    <main className="portfolio-page">
+      <header className="portfolio-header">
+        <h1 className="portfolio-title">
+          {searchParams.get("sector") ? `${normalizeSector(searchParams.get("sector"))} Portfolio` : "My Assets"}
+        </h1>
+        <p className="portfolio-subtitle">
           {searchParams.get("sector")
-            ? `Showing ${selectedSector} stocks with current price.`
-            : "Added stocks with current price."}
+            ? `Exclusive analysis of your holdings in the ${normalizeSector(searchParams.get("sector"))} sector.`
+            : "Real-time overview of your complete tracked market holdings."}
         </p>
-      </div>
+      </header>
 
-      <section className="glass-card overflow-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-slate-400 border-b border-white/10">
-              <th className="p-3">Stock</th>
-              <th className="p-3">Price</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredHoldings.map((stock, index) => (
-              <tr key={`${stock.name}-${index}`} className="border-b border-white/5 last:border-b-0">
-                <td className="p-3 font-medium">{stock.name}</td>
-                <td className="p-3">{formatCurrency(stock.price)}</td>
-              </tr>
-            ))}
-            {filteredHoldings.length === 0 && (
-              <tr>
-                <td className="p-6 text-slate-400" colSpan="2">
-                  {searchParams.get("sector")
-                    ? `No stocks found for ${selectedSector}.`
-                    : "No stocks added yet."}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <section className="portfolio-grid">
+        {filteredHoldings.map((stock, index) => (
+          <div key={`${stock.name}-${index}`} className="stock-item-card">
+            <div className="stock-info">
+              <div className="stock-icon-box">
+                {stock.name.charAt(0)}
+              </div>
+              <div className="stock-details">
+                <div className="stock-name-row">
+                  <span className="stock-symbol">{stock.symbol || stock.name}</span>
+                  <span className="stock-sector-tag">{stock.sector}</span>
+                </div>
+                <span className="stock-full-name">{stock.name}</span>
+              </div>
+            </div>
+            
+            <div className="stock-price-box">
+              <div className="stock-price-label">Market Value</div>
+              <div className="stock-price-value">
+                {stock.price > 0 ? formatCurrency(stock.price) : "Live Fetch..."}
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {filteredHoldings.length === 0 && (
+          <div className="empty-portfolio">
+            <span className="empty-icon">📂</span>
+            <p className="empty-text">
+              {searchParams.get("sector")
+                ? `No assets found in the ${selectedSector} sector.`
+                : "Your portfolio is currently empty. Start adding assets to track them."}
+            </p>
+          </div>
+        )}
       </section>
     </main>
   );

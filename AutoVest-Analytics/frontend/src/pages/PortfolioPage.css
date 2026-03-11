@@ -1,0 +1,146 @@
+/* Modern Portfolio Page Styles */
+.portfolio-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 60px 24px;
+  font-family: 'Poppins', sans-serif;
+  color: #ffffff;
+}
+
+.portfolio-header {
+  margin-bottom: 48px;
+  animation: slideDown 0.6s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.portfolio-title {
+  font-size: 42px;
+  font-weight: 800;
+  letter-spacing: -1.5px;
+  margin-bottom: 8px;
+  background: linear-gradient(to right, #ffffff, #94a3b8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.portfolio-subtitle {
+  color: #94a3b8;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.portfolio-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+  animation: fadeIn 0.8s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.stock-item-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stock-item-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(99, 102, 241, 0.3);
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+}
+
+.stock-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.stock-icon-box {
+  width: 52px;
+  height: 52px;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #818cf8;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.stock-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stock-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stock-symbol {
+  font-size: 18px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.stock-sector-tag {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #818cf8;
+  background: rgba(99, 102, 241, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.stock-full-name {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.stock-price-box {
+  text-align: right;
+}
+
+.stock-price-label {
+  font-size: 9px;
+  font-weight: 800;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.stock-price-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: #10b981;
+}
+
+.empty-portfolio {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  color: #64748b;
+}

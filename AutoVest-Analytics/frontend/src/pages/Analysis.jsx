@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
+import { BarChart3, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import api from "../services/api";
 
 const STORAGE_KEY = "manualStocks";
@@ -82,6 +83,7 @@ export default function Analysis() {
   const [metrics, setMetrics] = useState({});
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
+  const [selectedStockId, setSelectedStockId] = useState(null);
 
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
@@ -169,103 +171,253 @@ export default function Analysis() {
     [rows]
   );
 
+  const selectedRegression = useMemo(() => {
+    if (!regressionRows.length) return null;
+    const found = regressionRows.find((r) => r.entry.id === selectedStockId);
+    return found || regressionRows[0];
+  }, [regressionRows, selectedStockId]);
+
   return (
-    <main className="max-w-7xl mx-auto px-6 py-8">
-      <h1 className="text-3xl font-bold mb-6">Stock Analysis</h1>
+    <main className="max-w-7xl mx-auto px-6 py-12 font-['Poppins',sans-serif]">
+      <style>{`
+        .glass-table-container {
+          background: rgba(255, 255, 255, 0.02);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          border-radius: 2rem;
+        }
+        .stats-grid-mini {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+          gap: 1.5rem;
+        }
+        .data-card {
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          border-radius: 1.5rem;
+          padding: 1.5rem;
+          transition: all 0.3s ease;
+        }
+        .data-card:hover {
+          background: rgba(255, 255, 255, 0.05);
+          border-color: rgba(99, 102, 241, 0.2);
+        }
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-slideUp {
+          animation: slideUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+      `}</style>
 
-      {err && <div className="text-overvalued mb-4">{err}</div>}
-      {loading && <div className="glass-card p-5 text-slate-300 mb-4">Analyzing stocks...</div>}
+      <div className="mb-12">
+        <h1 className="text-4xl font-extrabold text-white tracking-tight mb-3">Portfolio Intelligence</h1>
+        <p className="text-slate-400 text-lg max-w-2xl">
+          Advanced algorithmic analysis and predictive trends for your selected holdings.
+        </p>
+      </div>
 
-      {rows.length === 0 && (
-        <div className="glass-card p-6 text-slate-300">No manual stocks found. Add stocks in the Manual Entry page.</div>
-      )}
-
-      {summaryRows.length > 0 && (
-        <div className="glass-card mb-6 overflow-x-auto">
-          <table className="w-full min-w-[920px] text-sm">
-            <thead>
-              <tr className="border-b border-white/10 text-left text-slate-300">
-                <th className="px-4 py-3">Stock Name</th>
-                <th className="px-4 py-3">Company Name</th>
-                <th className="px-4 py-3">Current Price</th>
-                <th className="px-4 py-3">Min Price</th>
-                <th className="px-4 py-3">Max Price</th>
-                <th className="px-4 py-3">Linear +1D</th>
-                <th className="px-4 py-3">Logistic +1D</th>
-                <th className="px-4 py-3">TS +1D</th>
-                <th className="px-4 py-3">RNN +1D</th>
-                <th className="px-4 py-3">PE Ratio</th>
-                <th className="px-4 py-3">Discount %</th>
-              </tr>
-            </thead>
-            <tbody>
-              {summaryRows.map((row) => (
-                <tr key={row.id} className="border-b border-white/5">
-                  <td className="px-4 py-3 font-semibold text-white">{row.stockName}</td>
-                  <td className="px-4 py-3 text-slate-200">{row.companyName}</td>
-                  <td className="px-4 py-3 text-slate-200">{formatPrice(row.currentPrice)}</td>
-                  <td className="px-4 py-3 text-slate-200">{formatPrice(row.minPrice)}</td>
-                  <td className="px-4 py-3 text-slate-200">{formatPrice(row.maxPrice)}</td>
-                  <td className="px-4 py-3 text-slate-200">{formatPrice(row.lin1d)}</td>
-                  <td className="px-4 py-3 text-slate-200">{formatPrice(row.log1d)}</td>
-                  <td className="px-4 py-3 text-slate-200">{formatPrice(row.ts1d)}</td>
-                  <td className="px-4 py-3 text-slate-200">{formatPrice(row.rnn1d)}</td>
-                  <td className="px-4 py-3 text-slate-200">{formatValue(row.peRatio)}</td>
-                  <td className="px-4 py-3 text-opportunity">{formatValue(row.discount)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {err && (
+        <div className="mb-8 p-5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 font-bold flex items-center gap-3 animate-slideUp">
+          <div className="w-2 h-2 bg-rose-500 rounded-full animate-pulse"></div>
+          {err}
         </div>
       )}
 
-      {opportunityData.length > 0 && (
-        <div className="glass-card p-4 mb-6">
-          <div className="text-lg font-semibold mb-3">Opportunity Graph (PE Ratio)</div>
-          <div style={{ height: OPPORTUNITY_CHART_HEIGHT }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={opportunityData} margin={{ top: 10, right: 20, bottom: 20, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                <XAxis dataKey="name" name="Stock" interval={0} angle={-18} textAnchor="end" height={56} />
-                <YAxis name="PE Ratio" />
-                <Tooltip cursor={{ strokeDasharray: "3 3" }} formatter={(value) => [formatValue(value), "PE Ratio"]} labelFormatter={(_, p) => p?.[0]?.payload?.name || ""} />
-                <Line type="monotone" dataKey="peRatio" stroke="#60a5fa" strokeWidth={3} dot={{ r: 4 }} />
-              </LineChart>
-            </ResponsiveContainer>
+      {loading && (
+        <div className="mb-8 p-6 glass-table-container flex items-center gap-4 animate-slideUp">
+          <div className="w-6 h-6 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
+          <span className="text-slate-300 font-bold">Synchronizing market data...</span>
+        </div>
+      )}
+
+      {rows.length === 0 && !loading && (
+        <div className="p-12 glass-table-container text-center animate-slideUp">
+          <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
+            <BarChart3 size={40} className="text-slate-500" />
+          </div>
+          <h3 className="text-2xl font-bold text-white mb-2">Portfolio is Empty</h3>
+          <p className="text-slate-400">Navigate to Manual Entry to start tracking your first assets.</p>
+        </div>
+      )}
+
+      {summaryRows.length > 0 && (
+        <div className="glass-table-container mb-12 overflow-hidden animate-slideUp">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-white/5 text-left">
+                  <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] text-slate-400">Asset</th>
+                  <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] text-slate-400">Price</th>
+                  <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] text-slate-400">Market Range</th>
+                  <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] text-slate-400 text-center">Prediction (Lin/Log)</th>
+                  <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] text-slate-400 text-center">Efficiency (PE)</th>
+                  <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] text-slate-400 text-center">Opportunity</th>
+                  <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] text-slate-400 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {summaryRows.map((row) => (
+                  <tr key={row.id} className={`hover:bg-white/5 transition-all group ${selectedStockId === row.id ? 'bg-indigo-500/5' : ''}`}>
+                    <td className="px-6 py-6">
+                      <div className="font-black text-white text-base group-hover:text-indigo-400 transition-colors">{row.stockName}</div>
+                      <div className="text-slate-500 text-xs font-bold uppercase tracking-tighter truncate max-w-[140px]">{row.companyName}</div>
+                    </td>
+                    <td className="px-6 py-6 font-mono font-bold text-white text-base">{formatPrice(row.currentPrice)}</td>
+                    <td className="px-6 py-6">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                          <span className="text-emerald-400 font-mono text-xs font-bold">{formatPrice(row.maxPrice)}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-rose-500"></div>
+                          <span className="text-rose-400 font-mono text-xs font-bold">{formatPrice(row.minPrice)}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-6 text-center">
+                      <div className="inline-flex flex-col items-center p-2 rounded-xl bg-white/5 min-w-[100px]">
+                        <span className="text-indigo-400 font-black text-sm">{formatPrice(row.lin1d)}</span>
+                        <span className="text-amber-500/70 font-bold text-[10px]">{formatPrice(row.log1d)}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-6 text-center">
+                      <span className="text-slate-200 font-black text-base">{formatValue(row.peRatio)}</span>
+                    </td>
+                    <td className="px-6 py-6 text-center">
+                      <div className={`inline-block px-3 py-1.5 rounded-full font-black text-xs ${row.discount > 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+                        {row.discount > 0 ? '▲' : '▼'} {Math.abs(row.discount).toFixed(2)}%
+                      </div>
+                    </td>
+                    <td className="px-6 py-6 text-center">
+                      <button 
+                        onClick={() => setSelectedStockId(row.id)}
+                        className={`p-3 rounded-2xl transition-all active:scale-90 ${
+                          selectedStockId === row.id 
+                          ? 'bg-indigo-600 text-white shadow-2xl shadow-indigo-600/40' 
+                          : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white border border-white/5'
+                        }`}
+                      >
+                        <BarChart3 size={22} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
 
-      {regressionRows.length > 0 && (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {regressionRows.map(({ entry, data }) => {
-            const regData = buildRegressionSeries(data.series || []);
-            const current = regData[regData.length - 1]?.price ?? 0;
-            const predLin = regData[regData.length - 1]?.linear ?? 0;
-            const predLog = regData[regData.length - 1]?.logistic ?? 0;
-            const title = `${data?.symbol || entry.ticker} - Regression (last ${Math.min(regData.length, WINDOW_POINTS)} pts)`;
-            return (
-              <div key={entry.id} className="glass-card p-4 h-full">
-                <div className="text-lg font-semibold mb-2">{title}</div>
-                <div style={{ height: REGRESSION_CHART_HEIGHT }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={regData} margin={{ top: 10, right: 20, bottom: 20, left: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                      <XAxis dataKey="t" name="Index" />
-                      <YAxis name="Price" />
-                      <Tooltip formatter={(v, k) => [formatPrice(v), k]} />
-                      <Line type="monotone" dataKey="price" name="Price" stroke="#e2e8f0" strokeWidth={2} dot={false} />
-                      <Line type="monotone" dataKey="linear" name="Linear Reg" stroke="#60a5fa" strokeWidth={2} dot={false} />
-                      <Line type="monotone" dataKey="logistic" name="Logistic Reg" stroke="#f59e0b" strokeWidth={2} dot={false} />
-                    </LineChart>
-                  </ResponsiveContainer>
+      {selectedRegression && (
+        <div className="animate-slideUp" style={{ animationDelay: '0.1s' }}>
+          <div className="glass-table-container p-8 border-indigo-500/10 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.6)]">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 gap-6">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-3 rounded-2xl bg-indigo-600 shadow-xl shadow-indigo-600/20">
+                    <BarChart3 className="text-white" size={24} />
+                  </div>
+                  <h2 className="text-3xl font-black text-white tracking-tight">
+                    {selectedRegression.data?.symbol || selectedRegression.entry.ticker}
+                  </h2>
                 </div>
-                <div className="text-slate-300 text-sm mt-2">
-                  Current: {formatPrice(current)} | Linear now: {formatPrice(predLin)} | Logistic now: {formatPrice(predLog)}
+                <p className="text-slate-400 font-bold text-sm ml-14">DETAILED TREND ANALYTICS • LAST 60 DATA POINTS</p>
+              </div>
+              
+              <div className="flex gap-4 w-full lg:w-auto">
+                <div className="flex-1 lg:flex-none px-6 py-4 rounded-3xl bg-white/5 border border-white/10 text-center">
+                  <div className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Live Value</div>
+                  <div className="text-2xl font-mono font-black text-white">{formatPrice(selectedRegression.data?.price || 0)}</div>
+                </div>
+                <div className="flex-1 lg:flex-none px-6 py-4 rounded-3xl bg-indigo-600 text-center shadow-2xl shadow-indigo-600/20">
+                  <div className="text-[10px] text-indigo-100 uppercase font-black tracking-widest mb-1">Linear Projection</div>
+                  <div className="text-2xl font-mono font-black text-white">
+                    {formatPrice(predictNext(selectedRegression.data.series || []).lin)}
+                  </div>
                 </div>
               </div>
-            );
-          })}
+            </div>
+
+            <div className="mb-10" style={{ height: 450 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={buildRegressionSeries(selectedRegression.data.series || [])} margin={{ top: 10, right: 30, bottom: 20, left: 10 }}>
+                  <CartesianGrid strokeDasharray="0" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                  <XAxis dataKey="t" hide />
+                  <YAxis domain={['auto', 'auto']} stroke="rgba(255,255,255,0.2)" fontSize={12} fontStyle="italic" />
+                  <Tooltip 
+                    contentStyle={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '24px', padding: '20px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}
+                    itemStyle={{ fontWeight: '900', fontSize: '14px', padding: '4px 0' }}
+                    cursor={{ stroke: '#6366f1', strokeWidth: 2, strokeDasharray: '5 5' }}
+                  />
+                  <Line type="monotone" dataKey="price" name="Market Price" stroke="#ffffff" strokeWidth={4} dot={false} animationDuration={1500} />
+                  <Line type="monotone" dataKey="linear" name="Linear Fit" stroke="#6366f1" strokeWidth={2} strokeDasharray="8 4" dot={false} />
+                  <Line type="monotone" dataKey="logistic" name="Logistic Fit" stroke="#f59e0b" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            
+            <div className="stats-grid-mini">
+              <div className="data-card">
+                <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Sentiment Outlook</div>
+                {predictNext(selectedRegression.data.series || []).lin > (selectedRegression.data?.price || 0) ? (
+                  <div className="flex items-center gap-3 text-emerald-400 font-black text-lg">
+                    <div className="p-2 rounded-lg bg-emerald-500/10"><TrendingUp size={24} /></div>
+                    BULLISH TREND
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 text-rose-400 font-black text-lg">
+                    <div className="p-2 rounded-lg bg-rose-500/10"><TrendingDown size={24} /></div>
+                    BEARISH TREND
+                  </div>
+                )}
+              </div>
+              
+              <div className="data-card">
+                <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Model Convergence</div>
+                <div className="flex items-center gap-3 text-white font-black text-lg">
+                  {Math.abs(predictNext(selectedRegression.data.series || []).lin - predictNext(selectedRegression.data.series || []).log) < 5 ? (
+                    <><div className="p-2 rounded-lg bg-indigo-500/10"><Minus size={24} className="text-indigo-400" /></div> STABLE</>
+                  ) : (
+                    <><div className="p-2 rounded-lg bg-amber-500/10"><BarChart3 size={24} className="text-amber-400" /></div> VOLATILE</>
+                  )}
+                </div>
+              </div>
+              
+              <div className="data-card">
+                <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Sample Density</div>
+                <div className="flex items-center gap-3 text-white font-black text-lg">
+                  <div className="p-2 rounded-lg bg-white/5"><span className="text-slate-400 font-mono text-xl">#</span></div>
+                  {selectedRegression.data.series?.length || 0} POINTS
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {opportunityData.length > 0 && (
+        <div className="glass-table-container p-8 mt-12 mb-12 animate-slideUp" style={{ animationDelay: '0.2s' }}>
+          <div className="flex items-center gap-3 mb-8">
+            <TrendingUp className="text-emerald-500" size={28} />
+            <h3 className="text-2xl font-black text-white tracking-tight">Investment Opportunity Index</h3>
+          </div>
+          <div style={{ height: OPPORTUNITY_CHART_HEIGHT }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={opportunityData} margin={{ top: 10, right: 30, bottom: 20, left: 10 }}>
+                <CartesianGrid strokeDasharray="0" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                <XAxis dataKey="name" interval={0} angle={-25} textAnchor="end" height={70} stroke="rgba(255,255,255,0.2)" fontSize={10} fontWeight="bold" />
+                <YAxis stroke="rgba(255,255,255,0.2)" fontSize={12} fontStyle="italic" />
+                <Tooltip 
+                  contentStyle={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px' }}
+                  formatter={(value) => [formatValue(value), "PE Efficiency"]} 
+                />
+                <Line type="stepAfter" dataKey="peRatio" stroke="#10b981" strokeWidth={4} dot={{ r: 6, fill: '#10b981', strokeWidth: 3, stroke: '#020617' }} activeDot={{ r: 9 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       )}
     </main>

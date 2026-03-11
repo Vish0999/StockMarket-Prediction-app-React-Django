@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import api from "../services/api";
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ScatterChart, Scatter, ZAxis
+  ScatterChart, Scatter, ZAxis, Legend
 } from "recharts";
 import "./GoldSilver.css";
 
@@ -82,7 +82,6 @@ export default function GoldSilver() {
   const [cleaned, setCleaned] = useState([]);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
-  const [k, setK] = useState(3);
   const [note, setNote] = useState("");
   const [goldSer, setGoldSer] = useState([]);
   const [silverSer, setSilverSer] = useState([]);
@@ -91,8 +90,9 @@ export default function GoldSilver() {
   const reqCtrl = useRef(null);
 
   useEffect(() => {
+    fetchBoth();
     return () => { if (reqCtrl.current) reqCtrl.current.abort(); };
-  }, []);
+  }, [range, interval, quick]);
 
   const fetchData = async ({ force } = {}) => {
     setLoading(true); setErr("");
@@ -189,47 +189,22 @@ export default function GoldSilver() {
     });
   }, [cleaned, series]);
 
-  // Simple 2D k-means on [idx, normalized price]
-  const clusters = useMemo(() => {
-    const data = regressionData;
-    if (data.length < k || k < 1) return [];
-    const xs = data.map(d => d.idx);
-    const ps = data.map(d => d.price);
-    const nx = (x) => (x - Math.min(...xs)) / ((Math.max(...xs) - Math.min(...xs)) || 1);
-    const np = (p) => (p - Math.min(...ps)) / ((Math.max(...ps) - Math.min(...ps)) || 1);
-    let pts = data.map(d => ({ ...d, fx: nx(d.idx), fp: np(d.price), c: 0 }));
-    let cents = Array.from({ length: k }, (_, i) => ({ x: i / (k - 1 || 1), y: i / (k - 1 || 1) }));
-    for (let iter = 0; iter < 15; iter++) {
-      // assign
-      pts = pts.map(p => {
-        let best = 0, bestd = Infinity;
-        cents.forEach((c, ci) => {
-          const d = (p.fx - c.x) ** 2 + (p.fp - c.y) ** 2;
-          if (d < bestd) { bestd = d; best = ci; }
-        });
-        return { ...p, c: best };
-      });
-      // update
-      cents = cents.map((c, ci) => {
-        const group = pts.filter(p => p.c === ci);
-        if (!group.length) return c;
-        const mx = group.reduce((s,p) => s + p.fx, 0) / group.length;
-        const my = group.reduce((s,p) => s + p.fp, 0) / group.length;
-        return { x: mx, y: my };
-      });
-    }
-    return pts;
-  }, [regressionData, k]);
-
-  const current = regressionData[regressionData.length - 1];
+  const combinedData = useMemo(() => {
+    if (!goldSer.length || !silverSer.length) return [];
+    const g = new Map(goldSer.map(p => [p.date, p.price]));
+    const s = new Map(silverSer.map(p => [p.date, p.price]));
+    const allDates = Array.from(new Set([...g.keys(), ...s.keys()])).sort();
+    
+    return allDates.map(date => ({
+      date,
+      gold: g.get(date) || null,
+      silver: s.get(date) || null
+    })).filter(d => d.gold !== null || d.silver !== null);
+  }, [goldSer, silverSer]);
 
   const alignedPairs = useMemo(() => {
-    if (!goldSer.length || !silverSer.length) return [];
-    const g = new Map(goldSer.map(p => [String(p.date), p.price]));
-    const s = new Map(silverSer.map(p => [String(p.date), p.price]));
-    const dates = [...g.keys()].filter(d => s.has(d)).sort();
-    return dates.map(d => ({ date: d, gold: g.get(d), silver: s.get(d) })).slice(-WINDOW);
-  }, [goldSer, silverSer]);
+    return combinedData.filter(d => d.gold !== null && d.silver !== null).slice(-WINDOW);
+  }, [combinedData]);
 
   const corr = useMemo(() => {
     const n = alignedPairs.length;
@@ -273,61 +248,53 @@ export default function GoldSilver() {
       {err && <div className="gs-error">{err}</div>}
 
       <section className="gs-card">
-        <div className="gs-card-title">Price with Linear & Logistic Regression</div>
-        <div style={{ height: 340 }}>
+        <div className="gs-card-title">Live Market Comparison: Gold vs Silver</div>
+        <div style={{ height: 400 }}>
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={regressionData} margin={{ top: 10, right: 20, bottom: 20, left: 0 }}>
+            <LineChart data={combinedData} margin={{ top: 10, right: 30, bottom: 20, left: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <Tooltip formatter={(v, k) => [typeof v === "number" ? v.toFixed(2) : v, k]} />
-              <Line type="monotone" dataKey="price" name="Price" stroke="#e2e8f0" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="linear" name="Linear" stroke="#60a5fa" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="logistic" name="Logistic" stroke="#f59e0b" strokeWidth={2} dot={false} />
+              <XAxis dataKey="date" hide />
+              <YAxis yAxisId="left" orientation="left" stroke="#ffd700" domain={['auto', 'auto']} />
+              <YAxis yAxisId="right" orientation="right" stroke="#c0c0c0" domain={['auto', 'auto']} />
+              <Tooltip 
+                contentStyle={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                itemStyle={{ fontWeight: 'bold' }}
+              />
+              <Legend verticalAlign="top" height={36}/>
+              <Line yAxisId="left" type="monotone" dataKey="gold" name="Gold Price" stroke="#ffd700" strokeWidth={3} dot={false} animationDuration={1000} />
+              <Line yAxisId="right" type="monotone" dataKey="silver" name="Silver Price" stroke="#c0c0c0" strokeWidth={3} dot={false} animationDuration={1000} />
             </LineChart>
           </ResponsiveContainer>
         </div>
-        {current && (
-          <div className="gs-note">Current: {(liveCurrent ?? current.price)?.toFixed(2)} • Linear now: {current.linear?.toFixed(2)} • Logistic now: {current.logistic?.toFixed(2)}</div>
-        )}
-      </section>
-
-      <section className="gs-card">
-        <div className="gs-card-title">Clustering (k = {k})</div>
-        <div className="gs-inline">
-          <label>Clusters</label>
-          <input type="number" min={2} max={6} value={k} onChange={(e)=>setK(Math.max(2, Math.min(6, Number(e.target.value)||3)))} />
-        </div>
-        <div style={{ height: 320 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <ScatterChart margin={{ top: 10, right: 20, bottom: 20, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-              <XAxis dataKey="idx" name="Index" />
-              <YAxis dataKey="price" name="Price" />
-              <ZAxis range={[60, 60]} />
-              <Tooltip formatter={(v, k) => [typeof v === "number" ? v.toFixed(2) : v, k]} />
-              <Scatter data={clusters} fill="#60a5fa" />
-            </ScatterChart>
-          </ResponsiveContainer>
+        <div className="gs-stats mt-4">
+          <div className="pp-chip" style={{ borderColor: '#ffd700', color: '#ffd700' }}>
+            Gold: {goldSer.length ? goldSer[goldSer.length-1].price.toFixed(2) : '---'}
+          </div>
+          <div className="pp-chip" style={{ borderColor: '#c0c0c0', color: '#c0c0c0' }}>
+            Silver: {silverSer.length ? silverSer[silverSer.length-1].price.toFixed(2) : '---'}
+          </div>
         </div>
       </section>
 
       <section className="gs-card">
-        <div className="gs-card-title">Gold vs Silver Correlation {alignedPairs.length ? `(r = ${corr.toFixed(3)})` : ""}</div>
-        <div style={{ height: 320 }}>
+        <div className="gs-card-title">Price Correlation Analysis {alignedPairs.length ? `(r = ${corr.toFixed(3)})` : ""}</div>
+        <div className="gs-note mb-4">A correlation (r) near 1.0 indicates Gold and Silver are moving closely together.</div>
+        <div style={{ height: 350 }}>
           <ResponsiveContainer width="100%" height="100%">
             <ScatterChart margin={{ top: 10, right: 20, bottom: 20, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-              <XAxis dataKey="gold" name="Gold" />
-              <YAxis dataKey="silver" name="Silver" />
+              <XAxis dataKey="gold" name="Gold" unit="$" stroke="#ffd700" />
+              <YAxis dataKey="silver" name="Silver" unit="$" stroke="#c0c0c0" />
               <ZAxis range={[60,60]} />
-              <Tooltip formatter={(v,k)=>[typeof v === 'number' ? v.toFixed(2):v, k]} labelFormatter={() => "Pair"} />
-              <Scatter data={alignedPairs} fill="#34d399" />
+              <Tooltip 
+                cursor={{ strokeDasharray: '3 3' }}
+                contentStyle={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+              />
+              <Scatter name="Price Pairs" data={alignedPairs} fill="#6366f1" />
             </ScatterChart>
           </ResponsiveContainer>
         </div>
       </section>
-
     </main>
   );
 }

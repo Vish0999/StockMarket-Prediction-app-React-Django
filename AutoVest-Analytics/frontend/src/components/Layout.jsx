@@ -1,4 +1,5 @@
 import Sidebar from "./Sidebar";
+import Chatbot from "./Chatbot";
 import  "./Layout.css";
 import   "./Navbarr.css";
 
@@ -9,6 +10,7 @@ export default function Layout({ children }) {
         <Sidebar />
         <main className="flex-1 min-w-0">{children}</main>
       </div>
+      <Chatbot />
     </div>
   );
 }

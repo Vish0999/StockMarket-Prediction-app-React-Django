@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import "./Login.css";
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -8,6 +9,7 @@ export default function Login() {
   const [isSignup, setIsSignup] = useState(false);
   const [err, setErr] = useState("");
   const [success, setSuccess] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const { login, signup } = useAuth();
   const navigate = useNavigate();
 
@@ -34,14 +36,33 @@ export default function Login() {
 
   const onSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return;
     setErr("");
     setSuccess("");
+    setSubmitting(true);
 
     try {
       if (isSignup) {
-        await signup(username, password);
+        let createdNewUser = true;
+        try {
+          await signup(username, password);
+        } catch (signupError) {
+          const usernameErrors = signupError?.response?.data?.username;
+          const firstUsernameError = Array.isArray(usernameErrors) ? usernameErrors[0] : "";
+          const isExistingUserError =
+            signupError?.response?.status === 400 &&
+            typeof firstUsernameError === "string" &&
+            firstUsernameError.toLowerCase().includes("already exists");
+
+          if (!isExistingUserError) throw signupError;
+          createdNewUser = false;
+        }
         await login(username, password);
-        setSuccess("Successfully signed up and logged in.");
+        setSuccess(
+          createdNewUser
+            ? "Successfully signed up and logged in."
+            : "Account already exists. Logged in successfully."
+        );
         setTimeout(() => navigate("/portfolio", { replace: true }), 700);
         return;
       }
@@ -51,82 +72,140 @@ export default function Login() {
       setTimeout(() => navigate("/portfolio", { replace: true }), 700);
     } catch (error) {
       setErr(getErrorMessage(error));
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <main
-      className="min-h-screen flex items-center justify-center px-6 py-10"
-      style={{
-        background:
-          "radial-gradient(circle at 15% 20%, rgba(125, 211, 252, 0.28), transparent 35%), radial-gradient(circle at 85% 15%, rgba(59, 130, 246, 0.24), transparent 32%), linear-gradient(145deg, #0f172a 0%, #1e3a8a 45%, #0b4f6c 100%)",
-      }}
-    >
-      {success && (
-        <div className="fixed top-4 right-4 z-50 bg-emerald-500 text-white px-4 py-2 rounded-lg shadow-lg text-sm">
-          {success}
-        </div>
-      )}
+    <main className="login-page">
+      {/* Background Decorations */}
+      <div className="bg-orb orb-1"></div>
+      <div className="bg-orb orb-2"></div>
 
-      <form
-        onSubmit={onSubmit}
-        className="w-full max-w-[440px] rounded-2xl bg-white/95 px-8 py-9 shadow-2xl border border-white/40"
-      >
-        <div className="mb-8">
-          <h1 className="text-center text-[30px] text-slate-800 font-semibold tracking-tight">
-            {isSignup ? "Create Account" : "Welcome Back"}
-          </h1>
-          <p className="text-center text-sm text-slate-500 mt-2">
-            {isSignup ? "Sign up to continue" : "Login to continue"}
-          </p>
-        </div>
+      <div className="login-container">
+        {/* Left Visual Branding */}
+        <div className="login-visual">
+          <div className="visual-grid"></div>
+          <div className="visual-content">
+            <div className="brand-logo">
+              <div className="logo-icon">
+                <div className="logo-inner"></div>
+              </div>
+              <span className="brand-name">AutoVest</span>
+            </div>
+            <h2 className="visual-title">
+              Master Your <br />
+              Financial Future
+            </h2>
+            <p className="visual-subtitle">
+              Join thousands of investors using AutoVest to track, analyze, and optimize their portfolios with AI-driven insights.
+            </p>
+          </div>
 
-        <div className="mb-5">
-          <label className="block text-[12px] text-slate-600 mb-2 font-medium">Username</label>
-          <input
-            className="w-full h-11 rounded-xl px-4 bg-slate-100 text-slate-700 outline-none border border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-200"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-[12px] text-slate-600 mb-2 font-medium">Password</label>
-          <input
-            className="w-full h-11 rounded-xl px-4 bg-slate-100 text-slate-700 outline-none border border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-200"
-            placeholder="Password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+          <div className="visual-stats">
+            <div className="stat-item">
+              <div className="stat-value">99.9%</div>
+              <div className="stat-label">Uptime</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-value">24/7</div>
+              <div className="stat-label">Analysis</div>
+            </div>
+          </div>
         </div>
 
-        <div className="text-right mt-3 text-xs italic text-slate-500">Forgot Password?</div>
-        {err && <div className="mt-4 text-sm text-red-600">{err}</div>}
+        {/* Right Form Section */}
+        <div className="login-form-section">
+          <div className="form-header">
+            <h1 className="form-title">{isSignup ? "Sign Up" : "Sign In"}</h1>
+            <p className="form-subtitle">
+              {isSignup ? "Create your account to start investing" : "Welcome back! Please enter your details"}
+            </p>
+          </div>
 
-        <button
-          type="submit"
-          className="w-full h-11 rounded-xl mt-7 bg-gradient-to-r from-[#2563eb] to-[#1d4ed8] text-white font-semibold tracking-[0.08em] hover:from-[#1d4ed8] hover:to-[#1e40af] transition-colors"
-        >
-          {isSignup ? "SIGN UP" : "LOGIN"}
-        </button>
+          {success && (
+            <div className="success-toast" style={{
+              background: '#10b981', color: 'white', padding: '12px 20px', 
+              borderRadius: '12px', marginBottom: '20px', fontWeight: '600', fontSize: '14px'
+            }}>
+              {success}
+            </div>
+          )}
 
-        <div className="mt-6 text-center text-[12px] text-slate-500">
-          {isSignup ? "Already have an account? " : "Don't have an account? "}
-          <button
-            type="button"
-            onClick={() => {
-              setErr("");
-              setIsSignup((v) => !v);
-            }}
-            className="text-blue-700 font-semibold hover:text-blue-800"
-          >
-            {isSignup ? "login" : "signup"}
-          </button>
+          <form onSubmit={onSubmit} className="login-form">
+            <div className="form-group">
+              <label className="form-label">Username</label>
+              <input
+                className="form-input"
+                placeholder="Enter your username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Password</label>
+              <input
+                className="form-input"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            {!isSignup && (
+              <div className="forgot-password">
+                <button type="button" className="forgot-btn">Forgot Password?</button>
+              </div>
+            )}
+
+            {err && (
+              <div className="error-box">
+                <span style={{ width: '8px', height: '8px', background: '#dc2626', borderRadius: '50%' }}></span>
+                {err}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="submit-btn"
+            >
+              {submitting ? (
+                <div className="spinner"></div>
+              ) : (
+                <>
+                  {isSignup ? "CREATE ACCOUNT" : "SIGN IN TO DASHBOARD"}
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                  </svg>
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="toggle-section">
+            <p>
+              {isSignup ? "Already have an account?" : "New to AutoVest?"}
+              <button
+                type="button"
+                onClick={() => {
+                  setErr("");
+                  setIsSignup((v) => !v);
+                }}
+                className="toggle-btn"
+              >
+                {isSignup ? "Sign In" : "Create Account"}
+              </button>
+            </p>
+          </div>
         </div>
-      </form>
+      </div>
     </main>
   );
 }
