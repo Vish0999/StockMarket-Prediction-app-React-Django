@@ -2,6 +2,25 @@
 .pp-header { display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 .pp-header h1 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.2px; }
 .pp-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.pp-select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 8px 12px;
+  color: #e2e8f0;
+  font-weight: 700;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.pp-select:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+.pp-select option {
+  background: #1e293b;
+  color: #e2e8f0;
+}
 .pp-btn { border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 8px 12px; background: transparent; color: #e2e8f0; font-weight: 700; }
 .pp-btn:hover { background: rgba(255,255,255,0.08); }
 .pp-btn.active { background: rgba(59,130,246,0.15); color: #60a5fa; }

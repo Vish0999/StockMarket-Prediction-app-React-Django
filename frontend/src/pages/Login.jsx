@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import "./Login.css";
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -77,126 +78,134 @@ export default function Login() {
   };
 
   return (
-    <main
-      className="min-h-screen flex items-center justify-center px-6 py-10 font-['Poppins',sans-serif] animate-fadeIn"
-      style={{
-        background: "linear-gradient(135deg, #0f172a 0%, #3b0764 100%)",
-      }}
-    >
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.8s ease-out forwards;
-        }
-        .login-card {
-          backdrop-filter: blur(10px);
-          transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .login-card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        }
-        .input-field {
-          transition: all 0.3s ease;
-        }
-        .input-field:focus {
-          box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
-        }
-        .login-button {
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-          background: linear-gradient(90deg, #6366f1 0%, #a855f7 100%);
-        }
-        .login-button:hover {
-          transform: scale(1.02);
-          filter: brightness(1.1);
-          box-shadow: 0 10px 15px -3px rgba(168, 85, 247, 0.4);
-        }
-        .login-button:active {
-          transform: scale(0.98);
-        }
-      `}</style>
+    <main className="login-page">
+      {/* Background Decorations */}
+      <div className="bg-orb orb-1"></div>
+      <div className="bg-orb orb-2"></div>
 
-      {success && (
-        <div className="fixed top-4 right-4 z-50 bg-emerald-500 text-white px-6 py-3 rounded-xl shadow-2xl text-sm font-medium animate-fadeIn">
-          {success}
-        </div>
-      )}
-
-      <form
-        onSubmit={onSubmit}
-        className="w-full max-w-[420px] rounded-[2rem] bg-white/95 px-10 py-12 shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/20 login-card"
-      >
-        <div className="mb-10 text-center">
-          <h1 className="text-3xl text-slate-900 font-bold tracking-tight mb-2">
-            {isSignup ? "Create Account" : "Welcome Back"}
-          </h1>
-          <p className="text-slate-500 font-medium">
-            {isSignup ? "Sign up to start your journey" : "Please enter your details to login"}
-          </p>
-        </div>
-
-        <div className="space-y-6">
-          <div className="relative group">
-            <label className="block text-sm font-semibold text-slate-700 mb-2 ml-1">Username</label>
-            <input
-              className="w-full h-12 rounded-2xl px-5 bg-slate-50 text-slate-800 outline-none border-2 border-slate-100 focus:border-indigo-400 input-field"
-              placeholder="Enter your username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
+      <div className="login-container">
+        {/* Left Visual Branding */}
+        <div className="login-visual">
+          <div className="visual-grid"></div>
+          <div className="visual-content">
+            <div className="brand-logo">
+              <div className="logo-icon">
+                <div className="logo-inner"></div>
+              </div>
+              <span className="brand-name">AutoVest</span>
+            </div>
+            <h2 className="visual-title">
+              Master Your <br />
+              Financial Future
+            </h2>
+            <p className="visual-subtitle">
+              Join thousands of investors using AutoVest to track, analyze, and optimize their portfolios with AI-driven insights.
+            </p>
           </div>
 
-          <div className="relative group">
-            <label className="block text-sm font-semibold text-slate-700 mb-2 ml-1">Password</label>
-            <input
-              className="w-full h-12 rounded-2xl px-5 bg-slate-50 text-slate-800 outline-none border-2 border-slate-100 focus:border-indigo-400 input-field"
-              placeholder="Enter your password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+          <div className="visual-stats">
+            <div className="stat-item">
+              <div className="stat-value">99.9%</div>
+              <div className="stat-label">Uptime</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-value">24/7</div>
+              <div className="stat-label">Analysis</div>
+            </div>
           </div>
         </div>
 
-        <div className="flex justify-end mt-4">
-          <button type="button" className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer">
-            Forgot Password?
-          </button>
-        </div>
-
-        {err && (
-          <div className="mt-6 p-4 rounded-xl bg-red-50 border border-red-100 text-sm text-red-600 font-medium">
-            {err}
+        {/* Right Form Section */}
+        <div className="login-form-section">
+          <div className="form-header">
+            <h1 className="form-title">{isSignup ? "Sign Up" : "Sign In"}</h1>
+            <p className="form-subtitle">
+              {isSignup ? "Create your account to start investing" : "Welcome back! Please enter your details"}
+            </p>
           </div>
-        )}
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full h-14 rounded-2xl mt-8 text-white font-bold tracking-wide login-button shadow-lg shadow-indigo-200"
-        >
-          {submitting ? "PROCESSING..." : isSignup ? "CREATE ACCOUNT" : "SIGN IN"}
-        </button>
+          {success && (
+            <div className="success-toast" style={{
+              background: '#10b981', color: 'white', padding: '12px 20px', 
+              borderRadius: '12px', marginBottom: '20px', fontWeight: '600', fontSize: '14px'
+            }}>
+              {success}
+            </div>
+          )}
 
-        <div className="mt-8 text-center text-sm font-medium text-slate-600">
-          {isSignup ? "Already have an account? " : "Don't have an account? "}
-          <button
-            type="button"
-            onClick={() => {
-              setErr("");
-              setIsSignup((v) => !v);
-            }}
-            className="text-indigo-600 font-bold hover:underline ml-1"
-          >
-            {isSignup ? "Login here" : "Sign up for free"}
-          </button>
+          <form onSubmit={onSubmit} className="login-form">
+            <div className="form-group">
+              <label className="form-label">Username</label>
+              <input
+                className="form-input"
+                placeholder="Enter your username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Password</label>
+              <input
+                className="form-input"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            {!isSignup && (
+              <div className="forgot-password">
+                <button type="button" className="forgot-btn">Forgot Password?</button>
+              </div>
+            )}
+
+            {err && (
+              <div className="error-box">
+                <span style={{ width: '8px', height: '8px', background: '#dc2626', borderRadius: '50%' }}></span>
+                {err}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="submit-btn"
+            >
+              {submitting ? (
+                <div className="spinner"></div>
+              ) : (
+                <>
+                  {isSignup ? "CREATE ACCOUNT" : "SIGN IN TO DASHBOARD"}
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                  </svg>
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="toggle-section">
+            <p>
+              {isSignup ? "Already have an account?" : "New to AutoVest?"}
+              <button
+                type="button"
+                onClick={() => {
+                  setErr("");
+                  setIsSignup((v) => !v);
+                }}
+                className="toggle-btn"
+              >
+                {isSignup ? "Sign In" : "Create Account"}
+              </button>
+            </p>
+          </div>
         </div>
-      </form>
+      </div>
     </main>
   );
 }

@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { PlusCircle, Database, Globe, AlertCircle, LayoutGrid, ArrowRight } from "lucide-react";
+import "./ManualEntry.css";
 
 const STORAGE_KEY = "manualStocks";
 const PORTFOLIO_STORAGE_KEY = "portfolioHoldings";
@@ -61,47 +63,93 @@ export default function ManualEntry() {
   };
 
   return (
-    <main className="max-w-3xl mx-auto px-6 py-10">
-      <h1 className="text-3xl font-bold mb-2">Manual Stock Entry</h1>
+    <main className="me-page">
+      <header className="me-header">
+        <h1 className="me-title">Asset Integration</h1>
+        <p className="me-subtitle">
+          Manually add custom tickers to your analysis dashboard and track their real-time performance.
+        </p>
+      </header>
 
-      <form onSubmit={onSubmit} className="card-glass p-6 space-y-4">
-        <div>
-          <label className="block text-sm mb-2">Sector</label>
-          <select
-            className="w-full p-3 rounded-xl bg-pinkdark border border-white/10"
-            value={sector}
-            onChange={(e) => setSector(e.target.value)}
-          >
-            {SECTORS.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
+      <div className="me-container">
+        {/* Form Side */}
+        <div className="me-form-side">
+          <form onSubmit={onSubmit}>
+            <div className="me-group">
+              <label className="me-label">Market Sector</label>
+              <select
+                className="me-select"
+                value={sector}
+                onChange={(e) => setSector(e.target.value)}
+              >
+                {SECTORS.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="me-group">
+              <label className="me-label">Stock Ticker Symbol</label>
+              <input
+                className="me-input"
+                value={ticker}
+                onChange={(e) => setTicker(e.target.value)}
+                placeholder="e.g. INFY.NS or AAPL"
+                required
+              />
+            </div>
+
+            {msg && (
+              <div className="me-error">
+                <AlertCircle size={18} />
+                {msg}
+              </div>
+            )}
+
+            <div className="me-actions">
+              <button type="submit" className="me-btn-add">
+                <PlusCircle size={20} />
+                ADD TO SYSTEM
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate("/analysis")}
+                className="me-btn-show"
+              >
+                VIEW LIST
+              </button>
+            </div>
+          </form>
         </div>
 
-        <div>
-          <label className="block text-sm mb-2">Stock Ticker</label>
-          <input
-            className="w-full p-3 rounded-xl bg-pinkdark border border-white/10"
-            value={ticker}
-            onChange={(e) => setTicker(e.target.value)}
-            placeholder="e.g. INFY.NS"
-            required
-          />
+        {/* Info Side */}
+        <div className="me-info-side">
+          <h3 className="info-title">Entry Guidelines</h3>
+          <ul className="info-list">
+            <li className="info-item">
+              <div className="info-icon"><Database size={20} /></div>
+              <div className="info-text">
+                <strong>Ticker Suffixes</strong>
+                Use .NS for NSE (India) or .BO for BSE to ensure accurate data retrieval.
+              </div>
+            </li>
+            <li className="info-item">
+              <div className="info-icon"><Globe size={20} /></div>
+              <div className="info-text">
+                <strong>Global Markets</strong>
+                Standard tickers (like TSLA, AAPL) work directly for US markets.
+              </div>
+            </li>
+            <li className="info-item">
+              <div className="info-icon"><LayoutGrid size={20} /></div>
+              <div className="info-text">
+                <strong>Smart Categorization</strong>
+                Assets are grouped by sector in your analysis dashboard for better comparison.
+              </div>
+            </li>
+          </ul>
         </div>
-
-        {msg && <div className="text-sm text-brand-accent">{msg}</div>}
-
-        <div className="flex flex-wrap gap-3">
-          <button className="btn-primary px-5 py-3 text-sm">Add Stock</button>
-          <button
-            type="button"
-            onClick={() => navigate("/analysis")}
-            className="px-5 py-3 text-sm rounded-xl border border-white/20 text-slate-200 hover:bg-white/5 transition-colors"
-          >
-            Show Stocks
-          </button>
-        </div>
-      </form>
+      </div>
     </main>
   );
 }
