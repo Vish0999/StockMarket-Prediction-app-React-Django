@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PlusCircle, Database, Globe, AlertCircle, LayoutGrid, ArrowRight } from "lucide-react";
-import "./ManualEntry.css";
+import "./manualEntry.css";
 
 const STORAGE_KEY = "manualStocks";
 const PORTFOLIO_STORAGE_KEY = "portfolioHoldings";

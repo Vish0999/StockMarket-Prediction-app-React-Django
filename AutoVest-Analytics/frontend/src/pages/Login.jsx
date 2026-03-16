@@ -15,7 +15,7 @@ export default function Login() {
 
   const getErrorMessage = (error) => {
     if (!error?.response) {
-      return "Cannot reach server at http://127.0.0.1:8000. Start backend and try again.";
+      return "Cannot reach server. Start backend and try again.";
     }
     const status = error.response.status;
     const data = error.response.data;

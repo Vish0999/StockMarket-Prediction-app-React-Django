@@ -20,7 +20,7 @@ export function AuthProvider({ children }) {
 
   const login = async (username, password) => {
     const headers = { headers: { "Content-Type": "application/json" }, timeout: 10000 };
-    const endpoints = ["http://127.0.0.1:8000/api/login/"];
+    const endpoints = ["/api/login/"];
     const payloads = [{ username: username.trim(), password }];
 
     let tokens = null;
@@ -59,7 +59,7 @@ export function AuthProvider({ children }) {
   };
 
   const signup = async (username, password) => {
-    await axios.post("http://127.0.0.1:8000/api/signup/", {
+    await axios.post("/api/signup/", {
       username: username.trim(),
       password,
     }, {
@@ -86,7 +86,7 @@ export function AuthProvider({ children }) {
     const delayMs = Math.max(0, (exp - now - 30) * 1000); // refresh 30s before expiry
     refreshTimer.current = setTimeout(async () => {
       try {
-        const res = await axios.post("http://127.0.0.1:8000/api/token/refresh/", { refresh: refreshToken });
+        const res = await axios.post("/api/token/refresh/", { refresh: refreshToken });
         const newAccess = res?.data?.access;
         if (!newAccess) throw new Error("no access");
         setAccess(newAccess);
@@ -103,7 +103,7 @@ export function AuthProvider({ children }) {
     const r = localStorage.getItem("refresh");
     const a = localStorage.getItem("access");
     if (r && !a) {
-      axios.post("http://127.0.0.1:8000/api/token/refresh/", { refresh: r })
+      axios.post("/api/token/refresh/", { refresh: r })
         .then(res => {
           const newAccess = res?.data?.access;
           if (!newAccess) throw new Error("no access");
